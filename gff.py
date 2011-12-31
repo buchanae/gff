@@ -1,32 +1,29 @@
-fieldnames = ('seqid', 'source', 'type', 'start', 'end', 
-              'score', 'strand', 'phase', 'attributes')
+class Feature(object):
 
+    @classmethod
+    def from_string(cls, raw):
+        """Parse a GFF3 line."""
 
-def parse_attributes(raw):
-    """Parse a GFF3 attributes string."""
+        cols = raw.strip().split('\t')
+        return cls(*cols)
 
-    att = {}
-    for token in raw.split(';'):
-        if token != '':
-            key, value = token.split("=")
-            att[key] = value
-    return att
+    def __init__(self, seqid, source, feature_type, start, end, score, strand,
+                 phase, raw_attributes):
 
-def parse(raw):
-    """Parse a GFF3 line."""
+        self.seqid = seqid
+        self.source = source
+        self.type = feature_type
+        self.start = int(start)
+        self.end = int(end)
+        self.score = score
+        self.strand = strand
+        self.phase = phase
+        self.raw_attributes = raw_attributes
 
-    d = {}
-
-    for i, val in enumerate(raw.strip().split('\t')):
-        d[fieldnames[i]] = val
-
-    for k, v in parse_attributes(d['attributes']).iteritems():
-        d[k] = v
-
-    d['start'] = int(d['start'])
-    d['end'] = int(d['end'])
-
-    return d
+        for token in raw_attributes.split(';'):
+            if token != '':
+                k, v = token.split("=")
+                setattr(self, k, v)
 
 
 class Reader(object):
@@ -36,12 +33,11 @@ class Reader(object):
     def __init__(self, path):
         self.path = path
 
-
     def __iter__(self):
         def _reader():
             with open(self.path) as fh:
                 for line in fh:
                     if line[:2] != '##':
-                        yield parse(line)
+                        yield Feature.from_string(line)
 
         return _reader()

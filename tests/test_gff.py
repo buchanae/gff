@@ -4,17 +4,13 @@ import files
 import gff
 
 
-def test_parse_attributes():
-    eq_({'Foo': 'Bar', 'BaZ': 'bat'}, gff.parse_attributes('Foo=Bar;BaZ=bat'))
-    eq_({}, gff.parse_attributes(''))
-
 def test_reader():
     p = files.path('gff')
     r = gff.Reader(p)
 
     # test that the Reader iterator can be reused
     for i in xrange(2):
-        lines = list(r)
+        features = list(r)
         eq_({
             'seqid': 'Chr1',
             'source': 'TAIR10',
@@ -24,10 +20,10 @@ def test_reader():
             'score': '.',
             'strand': '.',
             'phase': '.',
-            'attributes': 'ID=Chr1;Name=Chr1',
+            'raw_attributes': 'ID=Chr1;Name=Chr1',
             'ID': 'Chr1',
             'Name': 'Chr1',
-        }, lines[0])
+        }, features[0].__dict__)
         eq_({
             'seqid': 'Chr1',
             'source': 'TAIR10',
@@ -37,8 +33,8 @@ def test_reader():
             'score': '.',
             'strand': '+',
             'phase': '.',
-            'attributes': 'ID=AT1G01010;Note=protein_coding_gene;Name=AT1G01010',
+            'raw_attributes': 'ID=AT1G01010;Note=protein_coding_gene;Name=AT1G01010',
             'ID': 'AT1G01010',
             'Note': 'protein_coding_gene',
             'Name': 'AT1G01010',
-        }, lines[1])
+        }, features[1].__dict__)
