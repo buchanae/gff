@@ -1,4 +1,4 @@
-from nose.tools import eq_
+from nose.tools import eq_, raises
 
 import files
 import gff
@@ -6,7 +6,7 @@ import gff
 
 def test_reader():
     p = files.path('gff')
-    r = gff.Reader(p)
+    r = gff.reader(p)
     eq_([
         'Chr1	TAIR10	chromosome	1	30427671	.	.	.	ID=Chr1;Name=Chr1',
         'Chr1	TAIR10	gene	3631	5899	.	+	.	ID=AT1G01010;Note=protein_coding_gene;Name=AT1G01010'], list(r))
@@ -14,9 +14,8 @@ def test_reader():
 
 def test_feature_from_string():
     p = files.path('gff')
-    r = gff.Reader(p)
-    r = list(r)
-    a = gff.Feature.from_string(r[0])
+    r = gff.reader(p)
+    a = gff.Feature.from_string(r.next())
 
     eq_('Chr1', a.seqid)
     eq_('TAIR10', a.source)
@@ -30,3 +29,24 @@ def test_feature_from_string():
     eq_('ID=Chr1;Name=Chr1', a.raw_attributes)
     eq_('Chr1', a.attributes['ID'])
     eq_('Chr1', a.attributes['Name'])
+
+@raises(gff.InvalidGFFString)
+def test_invalid_columns():
+    p = files.path('invalid')
+    r = gff.reader(p)
+    a = gff.Feature.from_string(r.next())
+
+@raises(gff.InvalidGFFString)
+def test_invalid_start():
+    p = files.path('invalid')
+    r = gff.reader(p)
+    r.next()
+    a = gff.Feature.from_string(r.next())
+
+@raises(gff.InvalidGFFString)
+def test_invalid_end():
+    p = files.path('invalid')
+    r = gff.reader(p)
+    r.next()
+    r.next()
+    a = gff.Feature.from_string(r.next())

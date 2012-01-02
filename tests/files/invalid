@@ -1,0 +1,5 @@
+##	Comment
+##	Comment
+Chr1	TAIR10	chromosome	1	30427671	.	.	.
+Chr1	TAIR10	gene	stf	132	.	+	.	ID=AT1G01010;Note=protein_coding_gene;Name=AT1G01010
+Chr1	TAIR10	gene	3631	str	.	+	.	ID=AT1G01010;Note=protein_coding_gene;Name=AT1G01010

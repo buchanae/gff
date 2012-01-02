@@ -1,3 +1,14 @@
+def reader(path):
+    """Read a GFF3 file, returning a dictionary for each line."""
+
+    with open(path) as fh:
+        for line in fh:
+            if line[:2] != '##':
+                yield line.strip()
+
+
+class InvalidGFFString(Exception): pass
+
 class Feature(object):
 
     @classmethod
@@ -5,6 +16,9 @@ class Feature(object):
         """Parse a GFF3 line."""
 
         cols = raw.split('\t')
+        if len(cols) != 9:
+            raise InvalidGFFString("invalid number of columns in raw GFF string")
+
         return cls(*cols)
 
     def __init__(self, seqid, source, feature_type, start, end, score, strand,
@@ -13,8 +27,13 @@ class Feature(object):
         self.seqid = seqid
         self.source = source
         self.type = feature_type
-        self.start = int(start)
-        self.end = int(end)
+
+        try:
+            self.start = int(start)
+            self.end = int(end)
+        except ValueError:
+            raise InvalidGFFString("couldn't parse start or end value")
+
         self.length = self.end - self.start + 1
         self.score = score
         self.strand = strand
@@ -26,20 +45,3 @@ class Feature(object):
             if token != '':
                 k, v = token.split("=")
                 self.attributes[k] = v
-
-
-class Reader(object):
-
-    """Read a GFF3 file, returning a dictionary for each line."""
-
-    def __init__(self, path):
-        self.path = path
-
-    def __iter__(self):
-        def _reader():
-            with open(self.path) as fh:
-                for line in fh:
-                    if line[:2] != '##':
-                        yield line.strip()
-
-        return _reader()
