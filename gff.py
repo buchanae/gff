@@ -45,3 +45,8 @@ class Feature(object):
             if token != '':
                 k, v = token.split("=")
                 self.attributes[k] = v
+
+    def __str__(self):
+        return '\t'.join([self.seqid, self.source, self.type, str(self.start), 
+                          str(self.end), self.score, self.strand, self.phase, 
+                          self.raw_attributes])

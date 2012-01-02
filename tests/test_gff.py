@@ -30,6 +30,13 @@ def test_feature_from_string():
     eq_('Chr1', a.attributes['ID'])
     eq_('Chr1', a.attributes['Name'])
 
+def test_feature_to_string():
+    p = files.path('gff')
+    r = gff.reader(p)
+    l = r.next()
+    a = gff.Feature.from_string(l)
+    eq_(l, str(a))
+
 @raises(gff.InvalidGFFString)
 def test_invalid_columns():
     p = files.path('invalid')
