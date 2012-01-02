@@ -4,7 +4,7 @@ class Feature(object):
     def from_string(cls, raw):
         """Parse a GFF3 line."""
 
-        cols = raw.strip().split('\t')
+        cols = raw.split('\t')
         return cls(*cols)
 
     def __init__(self, seqid, source, feature_type, start, end, score, strand,
@@ -15,15 +15,17 @@ class Feature(object):
         self.type = feature_type
         self.start = int(start)
         self.end = int(end)
+        self.length = self.end - self.start + 1
         self.score = score
         self.strand = strand
         self.phase = phase
         self.raw_attributes = raw_attributes
 
+        self.attributes = {}
         for token in raw_attributes.split(';'):
             if token != '':
                 k, v = token.split("=")
-                setattr(self, k, v)
+                self.attributes[k] = v
 
 
 class Reader(object):
@@ -38,6 +40,6 @@ class Reader(object):
             with open(self.path) as fh:
                 for line in fh:
                     if line[:2] != '##':
-                        yield Feature.from_string(line)
+                        yield line.strip()
 
         return _reader()
