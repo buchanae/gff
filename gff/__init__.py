@@ -1,5 +1,23 @@
+def file_to_dict(path):
+    """TODO"""
+    features = {}
+
+    for line in reader(path):
+        try:
+            f = Feature.from_string(line)
+        except InvalidGFFString:
+            pass
+
+        features[f.attributes['ID']] = f
+
+    return features
+    
 def reader(path):
-    """Read a GFF3 file, returning a dictionary for each line."""
+    """
+    Read a GFF3 file, returning a dictionary for each line.
+
+    Ignore GFF3 comment lines.
+    """
 
     with open(path) as fh:
         for line in fh:
