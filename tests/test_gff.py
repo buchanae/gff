@@ -1,59 +1,71 @@
+from collections import OrderedDict
+from tempfile import NamedTemporaryFile
+
 from nose.tools import eq_, raises
 
-import files
 import gff
 
 
-def test_reader():
-    p = files.path('gff')
-    r = gff.reader(p)
-    eq_([
-        'Chr1	TAIR10	chromosome	1	30427671	.	.	.	ID=Chr1;Name=Chr1',
-        'Chr1	TAIR10	gene	3631	5899	.	+	.	ID=AT1G01010;Note=protein_coding_gene;Name=AT1G01010'], list(r))
+valid = OrderedDict([
+    ('seqid', 'SeqID'), ('source', 'SOURCE'), ('type', 'type'), ('start', '23'), 
+    ('end', '41'), ('score', '.'), ('strand', '-'), ('phase', '.'), 
+    ('attribs', 'ID=Foo;Parent=Bar,Baz;Note=FOO')
+])
 
+def mk(**kwargs):
+    v = valid.copy()
+    v.update(kwargs)
+    return '\t'.join(v.values())
+
+valid_str = mk()
+valid_b_str = mk(seqid='SeqIDB')
+missing_col_str = '\t'.join(valid.values()[:-1])
+invalid_start_str = mk(start='foo')
+invalid_end_str = mk(end='foo')
+
+dummy_file = NamedTemporaryFile(delete=False)
+dummy_file.write('##comment\n')
+dummy_file.write('##comment\n')
+dummy_file.write(valid_str + '\n')
+dummy_file.write(missing_col_str + '\n')
+dummy_file.write(invalid_start_str + '\n')
+dummy_file.write(invalid_end_str + '\n')
+dummy_file.write(valid_b_str + '\n')
+dummy_file.close()
+
+
+def test_reader():
+    eq_([valid_str, valid_b_str], [str(x) for x in gff.reader(dummy_file.name)])
 
 def test_feature_from_string():
-    p = files.path('gff')
-    r = gff.reader(p)
-    a = gff.Feature.from_string(r.next())
+    a = gff.Feature.from_string(valid_str)
 
-    eq_('Chr1', a.seqid)
-    eq_('TAIR10', a.source)
-    eq_('chromosome', a.type)
-    eq_(1, a.start)
-    eq_(30427671, a.end)
-    eq_(30427671, a.length)
+    eq_('SeqID', a.seqid)
+    eq_('SOURCE', a.source)
+    eq_('type', a.type)
+    eq_(23, a.start)
+    eq_(41, a.end)
+    eq_(19, a.length)
     eq_('.', a.score)
-    eq_('.', a.strand)
+    eq_('-', a.strand)
     eq_('.', a.phase)
-    eq_('ID=Chr1;Name=Chr1', a.raw_attributes)
-    eq_('Chr1', a.attributes['ID'])
-    eq_('Chr1', a.attributes['Name'])
+    eq_('ID=Foo;Parent=Bar,Baz;Note=FOO', a.raw_attributes)
+    eq_('Foo', a.attributes['ID'])
+    eq_('FOO', a.attributes['Note'])
+    eq_(['Bar', 'Baz'], a.attributes['Parent'])
 
 def test_feature_to_string():
-    p = files.path('gff')
-    r = gff.reader(p)
-    l = r.next()
-    a = gff.Feature.from_string(l)
-    eq_(l, str(a))
+    a = gff.Feature(*valid.values())
+    eq_(valid_str, str(a))
 
-@raises(gff.InvalidGFFString)
+@raises(gff.Feature.ParseError)
 def test_invalid_columns():
-    p = files.path('invalid')
-    r = gff.reader(p)
-    a = gff.Feature.from_string(r.next())
+    a = gff.Feature.from_string(missing_col_str)
 
-@raises(gff.InvalidGFFString)
+@raises(gff.Feature.ParseError)
 def test_invalid_start():
-    p = files.path('invalid')
-    r = gff.reader(p)
-    r.next()
-    a = gff.Feature.from_string(r.next())
+    a = gff.Feature.from_string(invalid_start_str)
 
-@raises(gff.InvalidGFFString)
+@raises(gff.Feature.ParseError)
 def test_invalid_end():
-    p = files.path('invalid')
-    r = gff.reader(p)
-    r.next()
-    r.next()
-    a = gff.Feature.from_string(r.next())
+    a = gff.Feature.from_string(invalid_end_str)

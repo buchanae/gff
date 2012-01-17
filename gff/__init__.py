@@ -6,21 +6,24 @@ def reader(path):
             if line[:2] != '##':
                 try:
                     yield Feature.from_string(line.strip())
-                except InvalidGFFString:
+                except Feature.ParseError:
                     pass
 
 
-class InvalidGFFString(Exception): pass
-
 class Feature(object):
+
+    """TODO"""
+
+    class ParseError(Exception): pass
 
     @classmethod
     def from_string(cls, raw):
         """Parse a GFF3 line."""
 
         cols = raw.split('\t')
+
         if len(cols) != 9:
-            raise InvalidGFFString("invalid number of columns in raw GFF string")
+            raise Feature.ParseError("invalid number of columns in raw GFF string")
 
         return cls(*cols)
 
@@ -35,7 +38,7 @@ class Feature(object):
             self.start = int(start)
             self.end = int(end)
         except ValueError:
-            raise InvalidGFFString("couldn't parse start or end value")
+            raise Feature.ParseError("couldn't parse start or end value")
 
         self.length = self.end - self.start + 1
         self.score = score
@@ -47,6 +50,9 @@ class Feature(object):
         for token in raw_attributes.split(';'):
             if token != '':
                 k, v = token.split("=")
+                sp = v.split(',')
+                if len(sp) > 1:
+                    v = sp
                 self.attributes[k] = v
 
     def __str__(self):
