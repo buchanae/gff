@@ -49,7 +49,7 @@ def test_feature_from_string():
     eq_('.', a.score)
     eq_('-', a.strand)
     eq_('.', a.phase)
-    eq_('ID=Foo;Parent=Bar,Baz;Note=FOO', a.raw_attributes)
+    eq_('ID=Foo;Parent=Bar,Baz;Note=FOO', str(a.attributes))
     eq_('Foo', a.attributes['ID'])
     eq_('FOO', a.attributes['Note'])
     eq_(['Bar', 'Baz'], a.attributes['Parent'])
