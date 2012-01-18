@@ -1,16 +1,6 @@
 from collections import OrderedDict
 
 
-def reader(path):
-    """Read a GFF3 file, returning a Feature for every valid line."""
-
-    with open(path) as fh:
-        for line in fh:
-            if line[:2] != '##':
-                try:
-                    yield Feature.from_string(line.strip())
-                except Feature.ParseError:
-                    pass
 
 
 class Attributes(OrderedDict):
@@ -42,6 +32,18 @@ class Feature(object):
     """TODO"""
 
     class ParseError(Exception): pass
+
+    @classmethod
+    def from_file(cls, path):
+        """Read a GFF3 file, returning a Feature for every valid line."""
+
+        with open(path) as fh:
+            for line in fh:
+                if line[:2] != '##':
+                    try:
+                        yield cls.from_string(line.strip())
+                    except cls.ParseError:
+                        pass
 
     @classmethod
     def from_string(cls, raw):

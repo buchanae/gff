@@ -3,7 +3,7 @@ from tempfile import NamedTemporaryFile
 
 from nose.tools import eq_, raises
 
-import gff
+from gff import Feature
 
 
 valid = OrderedDict([
@@ -35,10 +35,10 @@ dummy_file.close()
 
 
 def test_reader():
-    eq_([valid_str, valid_b_str], [str(x) for x in gff.reader(dummy_file.name)])
+    eq_([valid_str, valid_b_str], [str(x) for x in Feature.from_file(dummy_file.name)])
 
 def test_feature_from_string():
-    a = gff.Feature.from_string(valid_str)
+    a = Feature.from_string(valid_str)
 
     eq_('SeqID', a.seqid)
     eq_('SOURCE', a.source)
@@ -55,17 +55,17 @@ def test_feature_from_string():
     eq_(['Bar', 'Baz'], a.attributes['Parent'])
 
 def test_feature_to_string():
-    a = gff.Feature(*valid.values())
+    a = Feature(*valid.values())
     eq_(valid_str, str(a))
 
-@raises(gff.Feature.ParseError)
+@raises(Feature.ParseError)
 def test_invalid_columns():
-    a = gff.Feature.from_string(missing_col_str)
+    a = Feature.from_string(missing_col_str)
 
-@raises(gff.Feature.ParseError)
+@raises(Feature.ParseError)
 def test_invalid_start():
-    a = gff.Feature.from_string(invalid_start_str)
+    a = Feature.from_string(invalid_start_str)
 
-@raises(gff.Feature.ParseError)
+@raises(Feature.ParseError)
 def test_invalid_end():
-    a = gff.Feature.from_string(invalid_end_str)
+    a = Feature.from_string(invalid_end_str)
