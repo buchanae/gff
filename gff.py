@@ -1,6 +1,7 @@
 from collections import OrderedDict
 
 
+__version__ = '0.1'
 
 
 class Attributes(OrderedDict):

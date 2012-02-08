@@ -1,8 +1,15 @@
-from setuptools import setup, find_packages
+from distutils import setup
+
+import gff
 
 
 setup(
     name='gff',
-    version='0.1',
-    packages=find_packages()
+    description='TODO',
+    long_description=open('README.md').read(),
+    version=gff.__version__,
+    author='Alex Buchanan',
+    author_email='buchanae@gmail.com',
+    license='Apache',
+    py_modules=['gff']
 )
