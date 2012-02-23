@@ -10,7 +10,7 @@ class Attributes(OrderedDict):
         args = []
         for token in raw.split(';'):
             if token != '':
-                k, v = token.split("=")
+                k, v = token.strip().split("=")
                 sp = v.split(',')
                 if len(sp) > 1:
                     v = sp

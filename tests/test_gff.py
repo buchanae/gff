@@ -3,7 +3,7 @@ from tempfile import NamedTemporaryFile
 
 from nose.tools import eq_, raises
 
-from gff import Feature
+from gff import Attributes, Feature
 
 
 valid = OrderedDict([
@@ -69,3 +69,8 @@ def test_invalid_start():
 @raises(Feature.ParseError)
 def test_invalid_end():
     a = Feature.from_string(invalid_end_str)
+
+def test_attributes():
+    a = Attributes.from_string('ID=Csa1M000010.1.exon2; Parent=Csa1M000010.1')
+    b = Attributes([('ID', 'Csa1M000010.1.exon2'), ('Parent', 'Csa1M000010.1')])
+    eq_(b, a)
