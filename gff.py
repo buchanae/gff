@@ -9,8 +9,11 @@ class Attributes(OrderedDict):
     def from_string(cls, raw):
         args = []
         for token in raw.split(';'):
+            token = token.strip()
             if token != '':
-                k, v = token.strip().split("=")
+                i = token.find("=")
+                k = token[:i]
+                v = token[i + 1:]
                 sp = v.split(',')
                 if len(sp) > 1:
                     v = sp

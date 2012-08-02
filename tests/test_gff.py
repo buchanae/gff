@@ -88,3 +88,8 @@ def test_defaults():
     eq_('+', a.strand)
     eq_('.', a.phase)
     eq_('', str(a.attributes))
+
+def test_attribute_value_with_equal_sign():
+    a = Attributes.from_string('ID=bar=foo;Parent=baz=bat')
+    eq_('bar=foo', a['ID'])
+    eq_('baz=bat', a['Parent'])
