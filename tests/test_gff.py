@@ -74,3 +74,17 @@ def test_attributes():
     a = Attributes.from_string('ID=Csa1M000010.1.exon2; Parent=Csa1M000010.1')
     b = Attributes([('ID', 'Csa1M000010.1.exon2'), ('Parent', 'Csa1M000010.1')])
     eq_(b, a)
+
+def test_defaults():
+    a = Feature()
+
+    eq_('unknown', a.seqid)
+    eq_('unknown', a.source)
+    eq_('unknown', a.type)
+    eq_(1, a.start)
+    eq_(1, a.end)
+    eq_(1, a.length)
+    eq_('.', a.score)
+    eq_('+', a.strand)
+    eq_('.', a.phase)
+    eq_('', str(a.attributes))

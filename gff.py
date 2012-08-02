@@ -57,8 +57,9 @@ class Feature(object):
 
         return cls(*cols)
 
-    def __init__(self, seqid, source, feature_type, start, end, score, strand,
-                 phase, raw_attributes):
+    def __init__(self, seqid='unknown', source='unknown', feature_type='unknown', 
+                 start=1, end=1, score='.', strand='+',
+                 phase='.', raw_attributes=''):
 
         self.seqid = seqid
         self.source = source
