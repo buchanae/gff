@@ -1,90 +1,108 @@
 from collections import OrderedDict
 
 
-__version__ = '0.1'
+def parse_attributes_string(raw):
+    attributes = []
+    for token in raw.split(';'):
+        token = token.strip()
+        if token != '':
+            i = token.find('=')
+            k = token[:i]
+            v = token[i + 1:]
+            attributes.append((k, v))
+    return attributes
 
 
-class Attributes(OrderedDict):
-    @classmethod
-    def from_string(cls, raw):
-        args = []
-        for token in raw.split(';'):
-            token = token.strip()
-            if token != '':
-                i = token.find("=")
-                k = token[:i]
-                v = token[i + 1:]
-                sp = v.split(',')
-                if len(sp) > 1:
-                    v = sp
-                args.append((k, v))
+class GFF(object):
 
-        return cls(args)
-
-    def __str__(self):
-        return ';'.join([k + '=' + ','.join(self.as_list(k)) for k in self.keys()])
-
-    def as_list(self, k):
-        if type(self[k]) == list:
-            return self[k]
-        else:
-            return [self[k]]
-
-
-class Feature(object):
-
-    """TODO"""
+    '''TODO'''
 
     class ParseError(Exception): pass
 
     @classmethod
-    def from_file(cls, path):
-        """Read a GFF3 file, returning a Feature for every valid line."""
-
-        with open(path) as fh:
-            for line in fh:
-                if line[:2] != '##':
-                    try:
-                        yield cls.from_string(line.strip())
-                    except cls.ParseError:
-                        pass
-
-    @classmethod
     def from_string(cls, raw):
-        """Parse a GFF3 line."""
+        '''Parse a GFF3 line.'''
 
         cols = raw.split('\t')
 
         if len(cols) != 9:
-            raise Feature.ParseError("invalid number of columns in raw GFF string")
+            raise GFF.ParseError('Invalid number of columns in raw GFF string')
 
-        return cls(*cols)
+        # replace columns containing only '.' with None values
+        cols = [col if col != '.' else None for col in cols]
 
-    def __init__(self, seqid='unknown', source='unknown', feature_type='unknown', 
-                 start=1, end=1, score='.', strand='+',
-                 phase='.', raw_attributes=''):
-
-        self.seqid = seqid
-        self.source = source
-        self.type = feature_type
+        ref, source, ftype, start, end, score, strand, phase, raw_attributes = cols
 
         try:
-            self.start = int(start)
-            self.end = int(end)
+            start = int(start)
         except ValueError:
-            raise Feature.ParseError("couldn't parse start or end value")
+            raise GFF.ParseError("Couldn't parse start column as an integer")
+        except TypeError:
+            start = None
 
+        try:
+            end = int(end)
+        except ValueError:
+            raise GFF.ParseError("Couldn't parse end column as an integer")
+        except TypeError:
+            end = None
+
+        try:
+            score = float(score)
+        except ValueError:
+            raise GFF.ParseError("Couldn't parse score column as a float")
+        except TypeError:
+            score = None
+
+        try:
+            phase = int(phase)
+        except ValueError:
+            raise GFF.ParseError("Couldn't parse phase column as a int")
+        except TypeError:
+            phase = None
+
+        attributes = ()
+        if raw_attributes:
+            attributes = parse_attributes_string(raw_attributes)
+
+        return cls(ref, source, ftype, start, end, score, strand, phase, attributes)
+
+
+    def __init__(self, reference, source, feature_type, start, end,
+                 score, strand, phase, attributes=()):
+
+        self.reference = reference
+        self.source = source
+        self.type = feature_type
+        self.start = start
+        self.end = end
         self.score = score
         self.strand = strand
         self.phase = phase
+        self.attributes = OrderedDict(attributes)
 
-        self.attributes = Attributes.from_string(raw_attributes)
-
-    @property
-    def length(self):
-        return self.end - self.start + 1
 
     def __str__(self):
-        return '\t'.join([self.seqid, self.source, self.type, str(self.start), 
-                          str(self.end), self.score, self.strand, self.phase, 
-                          str(self.attributes)])
+
+        '''Return a GFF3 feature string.'''
+
+        attributes = ';'.join([k + '=' + v for k, v in self.attributes.items()])
+
+        cols = [self.reference, self.source, self.type, self.start, self.end,
+                self.score, self.strand, self.phase, attributes]
+
+        # If any of the columns are None value, repalce them with '.'
+        cols = [col if col is not None else '.' for col in cols]
+
+        # Convert all the columns to strings
+        cols = [str(col) for col in cols]
+
+        return '\t'.join(cols)
+
+
+def Reader(stream):
+    '''Read a GFF3 stream, returning a GFF for every valid line.'''
+    for line in stream:
+        # skip GFF comment lines
+        if line[:2] != '##':
+            yield GFF.from_string(line.strip())
