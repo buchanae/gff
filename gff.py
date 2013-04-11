@@ -1,6 +1,9 @@
 from collections import OrderedDict
 
 
+__version__ = '0.2'
+
+
 def parse_attributes_string(raw):
     attributes = []
     for token in raw.split(';'):
