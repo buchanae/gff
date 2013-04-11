@@ -71,10 +71,10 @@ class GFF(object):
         return cls(ref, source, ftype, start, end, score, strand, phase, attributes)
 
 
-    def __init__(self, reference, source, feature_type, start, end,
+    def __init__(self, seqid, source, feature_type, start, end,
                  score, strand, phase, attributes=()):
 
-        self.reference = reference
+        self.seqid = seqid
         self.source = source
         self.type = feature_type
         self.start = start
@@ -91,7 +91,7 @@ class GFF(object):
 
         attributes = ';'.join([k + '=' + v for k, v in self.attributes.items()])
 
-        cols = [self.reference, self.source, self.type, self.start, self.end,
+        cols = [self.seqid, self.source, self.type, self.start, self.end,
                 self.score, self.strand, self.phase, attributes]
 
         # If any of the columns are None value, repalce them with '.'

@@ -20,7 +20,7 @@ Chr1	TAIR10	exon	4486	4605	.	+	.	Parent=AT1G01010.1
 """.strip()
 
 VALID_COLUMNS = [
-    'reference',
+    'seqid',
     'source',
     'type',
     '1',
@@ -37,7 +37,7 @@ VALID = '\t'.join(VALID_COLUMNS)
 def test_feature_from_string():
     a = gff.GFF.from_string(VALID)
 
-    eq_('reference', a.reference)
+    eq_('seqid', a.seqid)
     eq_('source', a.source)
     eq_('type', a.type)
     eq_(1, a.start)
