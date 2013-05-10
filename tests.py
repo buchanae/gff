@@ -1,6 +1,8 @@
 from collections import OrderedDict
+import itertools
 from StringIO import StringIO
 
+import nose
 from nose.tools import eq_, ok_, raises
 
 import gff
@@ -82,3 +84,63 @@ def test_Reader():
     reader = gff.Reader(fh)
     a = reader.next()
     eq_('Chr1', a.attributes['ID'])
+
+
+def test_Tree():
+    t = gff.Tree()
+
+    a = t.Node('a')
+    b = t.Node('b')
+    c = t.Node('c')
+    d = t.Node('d')
+
+    eq_(a.record, 'a')
+
+    a.parent = t.root
+    b.parent = t.root
+    c.parent = a
+    d.parent = b
+
+    eq_(t.root.children, [a, b])
+    eq_(a.children, [c])
+    eq_(b.children, [d])
+
+
+def test_GFFTree():
+    fh = StringIO(RAW_GFF)
+    reader = gff.Reader(fh)
+    records = list(reader)
+
+    t = gff.GFFTree(records)
+
+    all_recs_prefix = []
+    t.walk(lambda n: all_recs_prefix.append(n.record))
+
+    expected = [
+        # Tree root
+        None,
+
+        # Chromosome
+        records[0],
+
+        records[1],
+        records[2],
+        records[4],
+        records[5],
+        records[6],
+        records[7],
+        records[8],
+        records[9],
+
+        # Note this is out of order because TAIR doesn't seem to use the Parent
+        # attribute correctly for protein records.
+        records[3],
+        records[6],
+        records[8],
+    ]
+
+    eq_(all_recs_prefix, expected)
+
+
+if __name__ == '__main__':
+    nose.main()
