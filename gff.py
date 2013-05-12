@@ -1,4 +1,5 @@
 from collections import defaultdict, OrderedDict
+import itertools
 
 
 __version__ = '0.3'
@@ -84,6 +85,13 @@ class GFF(object):
         self.phase = phase
         self.attributes = OrderedDict(attributes)
 
+    @property
+    def _key(self):
+        return (self.seqid, self.source, self.type, self.start, self.end, self.score,
+                self.strand, self.phase, self.attributes)
+
+    def __eq__(self, other):
+        return self._key == other._key
 
     def __str__(self):
 
@@ -118,13 +126,12 @@ def Reader(stream):
 class Tree(object):
 
     class Node(object):
-        def __init__(self, record=None):
-            self.record = record
+        def __init__(self):
             self._parent = None
             self.children = []
 
         def __str__(self):
-            return 'Node({})'.format(self.record)
+            return 'Node()'
 
         @property
         def parent(self):
@@ -139,31 +146,36 @@ class Tree(object):
             self._parent = value
             self._parent.children.append(self)
 
-        @property
-        def child_records(self):
-            return [node.record for node in self.children]
 
     def __init__(self):
-        self.root = self.Node()
+        self.roots = []
 
-    def walk(self, cb):
+    def walk(self):
         def fn(node):
-            cb(node)
+            yield node
             for child in node.children:
-                fn(child)
+                for node in fn(child):
+                    yield node
 
-        fn(self.root)
+        return itertools.chain.from_iterable(fn(root) for root in self.roots)
 
 
 class GFFTree(Tree):
 
+    class Node(GFF, Tree.Node):
+
+        def __init__(self, record):
+            GFF.__init__(self, record.seqid, record.source, record.type,
+                         record.start, record.end, record.score, record.strand,
+                         record.phase, record.attributes)
+            Tree.Node.__init__(self)
+
+        def __repr__(self):
+            return 'GFFTree.Node({})'.format(GFF.__repr__(self))
+
+
     def __init__(self, records):
         super(GFFTree, self).__init__()
-
-        # We need to walk through the records twice, 
-        # so ensure that we have a list,
-        # i.e. protect against someone passing a generator.
-        records = list(records)
 
         # First we index records by their parent ID.
         by_parent_ID = defaultdict(list)
@@ -172,11 +184,15 @@ class GFFTree(Tree):
         orphans = []
 
         for record in records:
+
             parent_IDs = self.record_parent_IDs(record)
             if parent_IDs:
                 for parent_ID in parent_IDs:
+                    # Records will multiple parents are duplicated
+                    record = self.Node(record)
                     by_parent_ID[parent_ID].append(record)
             else:
+                record = self.Node(record)
                 orphans.append(record)
 
         # Now we make a second pass, linking the nodes and building the tree.
@@ -192,17 +208,15 @@ class GFFTree(Tree):
         #      how could we offer a more efficient (or possibly distributed) version?
 
         def link_children(node):
-            ID = self.record_ID(node.record)
+            ID = self.record_ID(node)
             for child in by_parent_ID[ID]:
-                child = self.Node(child)
                 child.parent = node
                 link_children(child)
 
-        # orphans are linked to the tree root node
         for orphan in orphans:
-            orphan = self.Node(orphan)
-            orphan.parent = self.root
             link_children(orphan)
+
+        self.roots = orphans
 
     def record_ID(self, record):
         return record.attributes.get('ID')

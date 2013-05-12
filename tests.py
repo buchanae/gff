@@ -86,22 +86,17 @@ def test_Reader():
     eq_('Chr1', a.attributes['ID'])
 
 
-def test_Tree():
+def test_Tree_Node():
     t = gff.Tree()
 
-    a = t.Node('a')
-    b = t.Node('b')
-    c = t.Node('c')
-    d = t.Node('d')
+    a = t.Node()
+    b = t.Node()
+    c = t.Node()
+    d = t.Node()
 
-    eq_(a.record, 'a')
-
-    a.parent = t.root
-    b.parent = t.root
     c.parent = a
     d.parent = b
 
-    eq_(t.root.children, [a, b])
     eq_(a.children, [c])
     eq_(b.children, [d])
 
@@ -113,13 +108,9 @@ def test_GFFTree():
 
     t = gff.GFFTree(records)
 
-    all_recs_prefix = []
-    t.walk(lambda n: all_recs_prefix.append(n.record))
+    all_recs_prefix = list(t.walk())
 
     expected = [
-        # Tree root
-        None,
-
         # Chromosome
         records[0],
 
@@ -138,6 +129,9 @@ def test_GFFTree():
         records[6],
         records[8],
     ]
+
+    for a, b in itertools.izip_longest(all_recs_prefix, expected):
+        print repr(a).ljust(50), repr(b)
 
     eq_(all_recs_prefix, expected)
 
