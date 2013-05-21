@@ -2,75 +2,36 @@ from collections import defaultdict, OrderedDict
 import itertools
 
 
-__version__ = '0.3'
+__version__ = '0.4'
 
 
-def parse_attributes_string(raw):
-    attributes = []
-    for token in raw.split(';'):
-        token = token.strip()
-        if token != '':
-            i = token.find('=')
-            k = token[:i]
-            v = token[i + 1:]
-            attributes.append((k, v))
-    return attributes
+class AttributesBase(OrderedDict):
+    '''Abstract'''
 
-
-class GFF(object):
-
-    '''TODO'''
-
-    class ParseError(Exception): pass
+    key_value_separator = None
 
     @classmethod
     def from_string(cls, raw):
-        '''Parse a GFF3 line.'''
+        attributes = []
+        for token in raw.split(';'):
+            token = token.strip()
+            if token != '':
+                i = token.find(cls.key_value_separator)
+                k = token[:i]
+                v = token[i + 1:]
+                attributes.append((k, v))
+        return cls(attributes)
 
-        cols = raw.split('\t')
+    def __str__(self):
+        sep = self.key_value_separator
+        key_value_pairs = [k + sep + v for k, v in self.items()]
+        return ';'.join(key_value_pairs)
 
-        if len(cols) != 9:
-            raise GFF.ParseError('Invalid number of columns in raw GFF string')
 
-        # replace columns containing only '.' with None values
-        cols = [col if col != '.' else None for col in cols]
+class RecordBase(object):
+    '''Abstract'''
 
-        ref, source, ftype, start, end, score, strand, phase, raw_attributes = cols
-
-        try:
-            start = int(start)
-        except ValueError:
-            raise GFF.ParseError("Couldn't parse start column as an integer")
-        except TypeError:
-            start = None
-
-        try:
-            end = int(end)
-        except ValueError:
-            raise GFF.ParseError("Couldn't parse end column as an integer")
-        except TypeError:
-            end = None
-
-        try:
-            score = float(score)
-        except ValueError:
-            raise GFF.ParseError("Couldn't parse score column as a float")
-        except TypeError:
-            score = None
-
-        try:
-            phase = int(phase)
-        except ValueError:
-            raise GFF.ParseError("Couldn't parse phase column as a int")
-        except TypeError:
-            phase = None
-
-        attributes = ()
-        if raw_attributes:
-            attributes = parse_attributes_string(raw_attributes)
-
-        return cls(ref, source, ftype, start, end, score, strand, phase, attributes)
-
+    Attributes = None
 
     def __init__(self, seqid, source, feature_type, start, end,
                  score, strand, phase, attributes=()):
@@ -83,7 +44,7 @@ class GFF(object):
         self.score = score
         self.strand = strand
         self.phase = phase
-        self.attributes = OrderedDict(attributes)
+        self.attributes = self.Attributes(attributes)
 
     @property
     def _key(self):
@@ -97,31 +58,91 @@ class GFF(object):
 
         '''Return a GFF3 feature string.'''
 
-        attributes = ';'.join([k + '=' + v for k, v in self.attributes.items()])
+        order = [self.seqid, self.source, self.type, self.start, self.end,
+                self.score, self.strand, self.phase, self.attributes]
 
-        cols = [self.seqid, self.source, self.type, self.start, self.end,
-                self.score, self.strand, self.phase, attributes]
+        cols = []
 
-        # If any of the columns are None value, repalce them with '.'
-        cols = [col if col is not None else '.' for col in cols]
+        for col in order:
+            # If any of the columns are None value, repalce them with '.'
+            if col is None:
+                col = '.'
+            else:
+                col = str(col)
 
-        # Convert all the columns to strings
-        cols = [str(col) for col in cols]
+            cols.append(col)
 
         return '\t'.join(cols)
+
+    class ParseError(Exception): pass
+
+    @classmethod
+    def from_string(cls, raw):
+        cols = raw.split('\t')
+
+        if len(cols) != 9:
+            raise cls.ParseError('Invalid number of columns in raw GFF string')
+
+        # replace columns containing only '.' with None values
+        cols = [col if col != '.' else None for col in cols]
+
+        ref, source, ftype, start, end, score, strand, phase, raw_attributes = cols
+
+        try:
+            if start is not None:
+                start = int(start)
+        except ValueError:
+            raise cls.ParseError("Couldn't parse start column as an integer")
+
+        try:
+            if end is not None:
+                end = int(end)
+        except ValueError:
+            raise cls.ParseError("Couldn't parse end column as an integer")
+
+        try:
+            if score is not None:
+                score = float(score)
+        except ValueError:
+            raise cls.ParseError("Couldn't parse score column as a float")
+
+        try:
+            if phase is not None:
+                phase = int(phase)
+        except ValueError:
+            raise cls.ParseError("Couldn't parse phase column as a int")
+
+        attributes = ()
+        if raw_attributes is not None:
+            attributes = cls.Attributes.from_string(raw_attributes)
+
+        return cls(ref, source, ftype, start, end, score, strand, phase, attributes)
+
+    @classmethod
+    def from_file(cls, file_handle):
+        for line in file_handle:
+            # skip GFF comment lines
+            if line[:2] != '##':
+                yield cls.from_string(line.strip())
+
+
+class GFF(RecordBase):
+
+    class Attributes(AttributesBase):
+        key_value_separator = '='
 
     def __repr__(self):
         return 'GFF({}, {}, {}, {})'.format(self.seqid, self.type, self.start, self.end)
 
 
+class GTF(RecordBase):
 
-def Reader(stream):
-    '''Read a GFF3 stream, returning a GFF for every valid line.'''
-    for line in stream:
-        # skip GFF comment lines
-        if line[:2] != '##':
-            yield GFF.from_string(line.strip())
+    class Attributes(AttributesBase):
+        key_value_separator = ' '
 
+    def __repr__(self):
+        return 'GTF({}, {}, {}, {})'.format(self.seqid, self.type, self.start, self.end)
+    
 
 class Tree(object):
 
