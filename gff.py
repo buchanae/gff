@@ -119,7 +119,7 @@ def Reader(stream):
     '''Read a GFF3 stream, returning a GFF for every valid line.'''
     for line in stream:
         # skip GFF comment lines
-        if line[:2] != '##':
+        if not line.startswith('#'):
             yield GFF.from_string(line.strip())
 
 
