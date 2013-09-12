@@ -79,9 +79,9 @@ def test_invalid_end():
     a = gff.GFF.from_string(invalid_start_str)
 
 
-def test_Reader():
+def test_from_stream():
     fh = StringIO(RAW_GFF)
-    reader = gff.Reader(fh)
+    reader = gff.GFF.from_stream(fh)
     a = reader.next()
     eq_('Chr1', a.attributes['ID'])
 
@@ -103,7 +103,7 @@ def test_Tree_Node():
 
 def test_GFFTree():
     fh = StringIO(RAW_GFF)
-    reader = gff.Reader(fh)
+    reader = gff.GFF.from_stream(fh)
     records = list(reader)
 
     t = gff.GFFTree(records)

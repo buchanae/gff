@@ -2,7 +2,7 @@ from collections import defaultdict, OrderedDict
 import itertools
 
 
-__version__ = '0.3'
+__version__ = '1.0.0'
 
 
 def parse_attributes_string(raw):
@@ -113,14 +113,13 @@ class GFF(object):
     def __repr__(self):
         return 'GFF({}, {}, {}, {})'.format(self.seqid, self.type, self.start, self.end)
 
-
-
-def Reader(stream):
-    '''Read a GFF3 stream, returning a GFF for every valid line.'''
-    for line in stream:
-        # skip GFF comment lines
-        if not line.startswith('#'):
-            yield GFF.from_string(line.strip())
+    @classmethod
+    def from_stream(cls, stream):
+        '''Read a GFF3 stream, returning a GFF for every valid line.'''
+        for line in stream:
+            # skip GFF comment lines
+            if not line.startswith('#'):
+                yield cls.from_string(line.strip())
 
 
 class Tree(object):
