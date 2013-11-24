@@ -4,6 +4,8 @@ from collections import defaultdict, OrderedDict
 __version__ = '2.0.0'
 
 
+class MultipeParents(Exception): pass
+
 def parse_attributes_string(raw):
     attributes = []
     for token in raw.split(';'):
@@ -20,6 +22,7 @@ class GFF(object):
 
     '''TODO'''
 
+    # TODO measure savings from slots
     __slots__ = ('seqid', 'source', 'type', 'start', 'end', 'score', 'strand',
                  'phase', 'attributes')
 
@@ -111,6 +114,7 @@ class GFF(object):
 
         return '\t'.join(cols)
 
+    # TODO full repr
     def __repr__(self):
         return 'GFF({}, {}, {}, {})'.format(self.seqid, self.type, self.start, self.end)
 
@@ -123,6 +127,18 @@ class GFF(object):
         parent_IDs = self.attributes.get('Parent')
         if parent_IDs:
             return parent_IDs.split(',')
+
+    @property
+    def parent_ID(self):
+        parent_IDs = self.parent_IDs
+
+        if parent_IDs:
+            if len(parent_IDs) > 1:
+                # Note: this library doesn't yet know how to handle multiple parents.
+                #       We raise an exception to ensure the user knows that.
+                raise MultipleParents()
+            else:
+                return parent_IDs[0]
 
     @classmethod
     def from_stream(cls, stream):
