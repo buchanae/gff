@@ -1,8 +1,7 @@
 from collections import defaultdict, OrderedDict
-import itertools
 
 
-__version__ = '1.0.0'
+__version__ = '2.0.0'
 
 
 def parse_attributes_string(raw):
@@ -20,6 +19,22 @@ def parse_attributes_string(raw):
 class GFF(object):
 
     '''TODO'''
+
+    __slots__ = ('seqid', 'source', 'type', 'start', 'end', 'score', 'strand',
+                 'phase', 'attributes')
+
+    def __init__(self, seqid, source, feature_type, start, end,
+                 score, strand, phase, attributes=()):
+
+        self.seqid = seqid
+        self.source = source
+        self.type = feature_type
+        self.start = start
+        self.end = end
+        self.score = score
+        self.strand = strand
+        self.phase = phase
+        self.attributes = OrderedDict(attributes)
 
     class ParseError(Exception): pass
 
@@ -71,20 +86,6 @@ class GFF(object):
 
         return cls(ref, source, ftype, start, end, score, strand, phase, attributes)
 
-
-    def __init__(self, seqid, source, feature_type, start, end,
-                 score, strand, phase, attributes=()):
-
-        self.seqid = seqid
-        self.source = source
-        self.type = feature_type
-        self.start = start
-        self.end = end
-        self.score = score
-        self.strand = strand
-        self.phase = phase
-        self.attributes = OrderedDict(attributes)
-
     @property
     def _key(self):
         return (self.seqid, self.source, self.type, self.start, self.end, self.score,
@@ -113,6 +114,16 @@ class GFF(object):
     def __repr__(self):
         return 'GFF({}, {}, {}, {})'.format(self.seqid, self.type, self.start, self.end)
 
+    @property
+    def ID(self):
+        return self.attributes.get('ID', '')
+
+    @property
+    def parent_IDs(self):
+        parent_IDs = self.attributes.get('Parent')
+        if parent_IDs:
+            return parent_IDs.split(',')
+
     @classmethod
     def from_stream(cls, stream):
         '''Read a GFF3 stream, returning a GFF for every valid line.'''
@@ -122,83 +133,68 @@ class GFF(object):
                 yield cls.from_string(line.strip())
 
 
-class Tree(object):
 
-    class Node(object):
-        def __init__(self):
-            self._parent = None
-            self.children = []
-
-        def __str__(self):
-            return 'Node()'
-
-        @property
-        def parent(self):
-            return self._parent
-
-        @parent.setter
-        def parent(self, value):
-            # If this node already has a parent,
-            # delete this node from that parent's children
-            if self._parent:
-                self._parent.children.remove(self)
-            self._parent = value
-            self._parent.children.append(self)
-
+class TreeNode(object):
+    __slots__ = ('_parent', 'children')
 
     def __init__(self):
-        self.roots = []
+        self._parent = None
+        self.children = []
 
-    def walk(self):
-        def fn(node):
-            yield node
-            for child in node.children:
-                for node in fn(child):
-                    yield node
+    @property
+    def parent(self):
+        return self._parent
 
-        return itertools.chain.from_iterable(fn(root) for root in self.roots)
-
-
-class GFFTree(Tree):
-
-    class Node(GFF, Tree.Node):
-
-        def __init__(self, record):
-            GFF.__init__(self, record.seqid, record.source, record.type,
-                         record.start, record.end, record.score, record.strand,
-                         record.phase, record.attributes)
-            Tree.Node.__init__(self)
-
-        def __repr__(self):
-            return 'GFFTree.Node({})'.format(GFF.__repr__(self))
+    @parent.setter
+    def parent(self, value):
+        # If this node already has a parent,
+        # delete this node from that parent's children
+        if self._parent:
+            self._parent.children.remove(self)
+        self._parent = value
+        self._parent.children.append(self)
 
 
-    def __init__(self, records):
-        super(GFFTree, self).__init__()
+class GFFTreeNode(TreeNode):
+    __slots__ = ('_parent', 'children', 'record')
+
+    def __init__(self, record):
+        super(GFFTreeNode, self).__init__()
+        self.record = record
+
+    def __repr__(self):
+        return 'GFFTreeNode({})'.format(repr(self.record))
+
+    @classmethod
+    def from_records(cls, records):
+        root = cls(None)
 
         # First we index records by their parent ID.
         by_parent_ID = defaultdict(list)
 
-        # orphans are records without a parent.
+        # Orphans are records without a parent.
         orphans = []
 
         for record in records:
 
-            parent_IDs = self.record_parent_IDs(record)
+            # Some GFF files don't add a 'Parent' attribute for genes,
+            # so we fallback to using the seqid.
+            parent_IDs = record.parent_IDs or [record.seqid]
+
             if parent_IDs:
                 for parent_ID in parent_IDs:
-                    # Records will multiple parents are duplicated
-                    record = self.Node(record)
-                    by_parent_ID[parent_ID].append(record)
+                    # NOTE: Records with multiple parents are duplicated!
+                    node = cls(record)
+                    by_parent_ID[parent_ID].append(node)
             else:
-                record = self.Node(record)
-                orphans.append(record)
+                node = cls(record)
+                orphans.append(node)
 
         # Now we make a second pass, linking the nodes and building the tree.
         #
         # We do make two passes because we can't guarantee that
-        # a parent is defined before it's children.
-        # (GFF files a frequently a mess)
+        # a parent is defined before it's children
+        # (GFF files are frequently a mess).
         #
         # This two-phase process should be simple and robust,
         # although probably less efficient.
@@ -207,28 +203,13 @@ class GFFTree(Tree):
         #      how could we offer a more efficient (or possibly distributed) version?
 
         def link_children(node):
-            ID = self.record_ID(node)
+            ID = node.record.ID
             for child in by_parent_ID[ID]:
                 child.parent = node
                 link_children(child)
 
         for orphan in orphans:
             link_children(orphan)
+            orphan.parent = root
 
-        self.roots = orphans
-
-    def record_ID(self, record):
-        return record.attributes.get('ID')
-
-    def record_parent_IDs(self, record):
-        p = record.attributes.get('Parent')
-
-        # Frequently GFF files are a mess, and records like genes
-        # don't have a "Parent" attribute, but they clearly belong
-        # to the "seqid" column.
-        if not p and self.record_ID(record) != record.seqid:
-            p = record.seqid
-
-        # Records can have multiple parents, separated by a comma
-        if p:
-            return p.split(',')
+        return root
