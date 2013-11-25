@@ -37,7 +37,7 @@ class GFF(object):
         self.score = score
         self.strand = strand
         self.phase = phase
-        attributes = attributes or {}
+        self.attributes = attributes or {}
 
     class ParseError(Exception): pass
 
