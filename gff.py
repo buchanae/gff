@@ -1,4 +1,4 @@
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 
 
 __version__ = '2.0.0'
@@ -7,15 +7,15 @@ __version__ = '2.0.0'
 class MultipeParents(Exception): pass
 
 def parse_attributes_string(raw):
-    attributes = []
+    attrs = {}
     for token in raw.split(';'):
         token = token.strip()
         if token != '':
             i = token.find('=')
             k = token[:i]
             v = token[i + 1:]
-            attributes.append((k, v))
-    return attributes
+            attrs[k] = v
+    return attrs
 
 
 class GFF(object):
@@ -27,7 +27,7 @@ class GFF(object):
                  'phase', 'attributes')
 
     def __init__(self, seqid, source, feature_type, start, end,
-                 score, strand, phase, attributes=()):
+                 score, strand, phase, attributes=None):
 
         self.seqid = seqid
         self.source = source
@@ -37,7 +37,7 @@ class GFF(object):
         self.score = score
         self.strand = strand
         self.phase = phase
-        self.attributes = OrderedDict(attributes)
+        attributes = attributes or {}
 
     class ParseError(Exception): pass
 
@@ -47,47 +47,42 @@ class GFF(object):
 
         cols = raw.split('\t')
 
-        if len(cols) != 9:
+        # replace columns containing only '.' with None values
+        cols = (col if col != '.' else None for col in cols)
+
+        try:
+            ref, source, ftype, start, end, score, strand, phase, attrs = cols
+        except ValueError:
             raise GFF.ParseError('Invalid number of columns in raw GFF string')
 
-        # replace columns containing only '.' with None values
-        cols = [col if col != '.' else None for col in cols]
-
-        ref, source, ftype, start, end, score, strand, phase, raw_attributes = cols
-
         try:
-            start = int(start)
+            if start:
+                start = int(start)
         except ValueError:
             raise GFF.ParseError("Couldn't parse start column as an integer")
-        except TypeError:
-            start = None
 
         try:
-            end = int(end)
+            if end:
+                end = int(end)
         except ValueError:
             raise GFF.ParseError("Couldn't parse end column as an integer")
-        except TypeError:
-            end = None
 
         try:
-            score = float(score)
+            if score:
+                score = float(score)
         except ValueError:
             raise GFF.ParseError("Couldn't parse score column as a float")
-        except TypeError:
-            score = None
 
         try:
-            phase = int(phase)
+            if phase:
+                phase = int(phase)
         except ValueError:
             raise GFF.ParseError("Couldn't parse phase column as a int")
-        except TypeError:
-            phase = None
 
-        attributes = ()
-        if raw_attributes:
-            attributes = parse_attributes_string(raw_attributes)
+        if attrs:
+            attrs = parse_attributes_string(attrs)
 
-        return cls(ref, source, ftype, start, end, score, strand, phase, attributes)
+        return cls(ref, source, ftype, start, end, score, strand, phase, attrs)
 
     @property
     def _key(self):
@@ -145,7 +140,7 @@ class GFF(object):
         '''Read a GFF3 stream, returning a GFF for every valid line.'''
         for line in stream:
             # skip GFF comment lines
-            if not line.startswith('#'):
+            if line[0] != '#':
                 yield cls.from_string(line.strip())
 
 
