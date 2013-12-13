@@ -15,7 +15,6 @@ setup(
     author_email='buchanae@gmail.com',
     license='MIT',
     py_modules=[
-        'gff',
         'gff.formatter',
         'gff.parser',
         'gff.record',
