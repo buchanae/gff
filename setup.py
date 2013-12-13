@@ -1,15 +1,24 @@
 from distutils.core import setup
+import os
 
-import gff
+_this_dir = os.path.dirname(__file__)
+README_path = os.path.join(_this_dir, 'README.md')
+README = open(README_path).read()
 
 
 setup(
     name='gff',
-    description='TODO',
-    long_description=open('README.md').read(),
-    version=gff.__version__,
+    description='Tools for reading and working with GFF v3 records',
+    long_description=README,
+    version='2.0.0',
     author='Alex Buchanan',
     author_email='buchanae@gmail.com',
-    license='Apache',
-    py_modules=['gff']
+    license='MIT',
+    py_modules=[
+        'gff',
+        'gff.formatter',
+        'gff.parser',
+        'gff.record',
+        'gff.tree',
+    ]
 )
