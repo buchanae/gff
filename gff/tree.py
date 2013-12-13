@@ -67,10 +67,10 @@ def build_tree(records, cls=GFFTreeNode):
     >>> records = GFF.from_file(open('path/to/annotation.gff'))
     >>> tree = build_tree(records)
     >>> tree.children[0].ID
-    ... 'Chromosome 1'
+    'Chromosome 1'
     >>> chr1_genes = tree.children[0].children
     >>> chr1_genes[0].children[0].ID
-    ... 'transcript A.1'
+    'transcript A.1'
 
 
     Note, this tree building business can be tricky. GFF files often come
