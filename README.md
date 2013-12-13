@@ -1,17 +1,16 @@
 # gff
 
-A parser for [GFF3](http://www.sequenceontology.org/gff3.shtml)-formatted files.
-
-NOTE: This is alpha quality.  It may not strictly implement every feature of the GFF3 format.  See the Known Issues section.
+Tools for working with [GFF3](http://www.sequenceontology.org/gff3.shtml)-formatted files.
 
 # Usage
 
-    from gff import Feature, Reader
+    from gff import GFF
 
-    reader = Reader('/path/to/file.gff')
+    fh = open('path/to/annotation.gff')
+    records = GFF.from_file(fh)
 
-    for line in reader:
-        feature = Feature.from_string(line)
+    for record in records:
+        print record.ID
 
 # Known Issues
 
